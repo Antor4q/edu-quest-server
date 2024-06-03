@@ -36,6 +36,18 @@ async function run() {
       res.send({token})
     })
 
+    // users api
+    app.get("/users",async(req,res) => {
+      const result = await usersCollection.find().toArray()
+      res.send(result)
+    })
+    app.get("/users/:email",async(req,res)=>{
+      const email = req.params;
+      console.log('inside server',email)
+    
+      const result = await usersCollection.findOne(email)
+      res.send(result)
+    })
 
     app.post("/users", async(req,res) => {
         const userData = req.body
