@@ -10,7 +10,7 @@ app.use(express.json())
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.i8hseoh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -41,10 +41,9 @@ async function run() {
       const result = await usersCollection.find().toArray()
       res.send(result)
     })
+
     app.get("/users/:email",async(req,res)=>{
       const email = req.params;
-      console.log('inside server',email)
-    
       const result = await usersCollection.findOne(email)
       res.send(result)
     })
@@ -60,6 +59,20 @@ async function run() {
         }
         const result = await usersCollection.insertOne(user)
         res.send(result)
+    })
+
+    app.patch("/users/:id", async(req,res) => {
+      const id = req.params.id
+      const data = req.body
+      console.log(data,'inside server')
+      const query = { _id: new ObjectId(id)}
+      const updatedRole = {
+         $set : {
+          role : data.role
+         }
+      }
+      const result = await usersCollection.updateOne(query,updatedRole)
+      res.send(result)
     })
 
 
