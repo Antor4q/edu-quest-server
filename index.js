@@ -28,6 +28,7 @@ async function run() {
     await client.connect();
 
     const usersCollection = client.db('skillDB').collection('users')
+    const teachersCollection = client.db('skillDB').collection('teachers')
 
     // jwt
     app.post("/jwt", (req,res) => {
@@ -46,7 +47,9 @@ async function run() {
 
     app.get("/users/:email",async(req,res)=>{
       const email = req.params;
+      console.log(email,'inside server')
       const result = await usersCollection.findOne(email)
+    
       res.send(result)
     })
 
@@ -66,7 +69,7 @@ async function run() {
     app.patch("/users/:id", async(req,res) => {
       const id = req.params.id
       const data = req.body
-      console.log(data,'inside server')
+      
       const query = { _id: new ObjectId(id)}
       const updatedRole = {
          $set : {
@@ -81,6 +84,13 @@ async function run() {
       const id = req.params.id
       const query = {_id : new ObjectId(id)}
       const result = await usersCollection.deleteOne(query)
+      res.send(result)
+    })
+
+    // teachers related api
+    app.post("/teachers", async(req,res) =>{
+      const user = req.body;
+      const result = await teachersCollection.insertOne(user)
       res.send(result)
     })
 
