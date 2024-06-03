@@ -88,11 +88,18 @@ async function run() {
     })
 
     // teachers related api
+    app.get("/teachers",async(req,res)=>{
+      const result = await teachersCollection.find().toArray()
+      res.send(result)
+    })
+
     app.post("/teachers", async(req,res) =>{
       const user = req.body;
       const result = await teachersCollection.insertOne(user)
       res.send(result)
     })
+
+    
 
 
     // Send a ping to confirm a successful connection
