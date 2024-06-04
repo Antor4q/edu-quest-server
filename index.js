@@ -140,6 +140,12 @@ async function run() {
     })
 
     // classes api
+    app.get("/classes/:email", async(req,res) => {
+      const email = req.params.email
+      const filter = { email : email}
+      const result = await classesCollection.find(filter).toArray()
+      res.send(result)
+    })
     app.post("/classes",async(req,res) => {
       const data = req.body;
       const result = await classesCollection.insertOne(data)
