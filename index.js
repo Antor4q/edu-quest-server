@@ -140,6 +140,10 @@ async function run() {
     })
 
     // classes api
+    app.get("/classes", async(req,res) => {
+      const result = await classesCollection.find().toArray()
+      res.send(result)
+    })
     app.get("/classes/:email", async(req,res) => {
       const email = req.params.email
       const filter = { email : email}
@@ -169,6 +173,27 @@ async function run() {
       }
       const result = await classesCollection.updateOne(filter, updatedClass)
       res.send(result)
+    })
+
+    app.patch("/classes/:id",async(req,res) => {
+      const id = req.params.id
+      const data = req.body
+      const query = { _id : new ObjectId(id)}
+      const status = {
+         $set : {
+          status : data.status
+         }
+      }
+      if(data.status === 'Accepted'){
+         const result1 = await classesCollection.updateOne(query, status)
+         res.send({result1})
+        return
+      }
+      if(data.status === 'Rejected'){
+        const result2 = await classesCollection.updateOne(query, status)
+        res.send({result2})
+        return
+      }
     })
 
     app.delete("/classes/:id",async(req,res) => {
