@@ -47,7 +47,7 @@ async function run() {
 
     app.get("/users/:email",async(req,res)=>{
       const email = req.params;
-      console.log(email,'inside server')
+    
       const result = await usersCollection.findOne(email)
     
       res.send(result)
@@ -99,7 +99,39 @@ async function run() {
       res.send(result)
     })
 
-    
+    app.patch("/teachers/:id", async(req,res) => {
+      const id = req.params.id
+      const data = req.body
+      const query = { _id: new ObjectId(id)}
+      const filter ={email : data.email}
+
+      const updatedRole = {
+        $set : {
+          role : data.role
+        }
+      }
+
+      const updatedStatus = {
+        $set : {
+          status : data.status
+        }
+      }
+     
+      if(data.status === 'Accepted'){
+        // 
+       const result1 = await usersCollection.updateOne(filter, updatedRole)
+       const result2 = await teachersCollection.updateOne(query, updatedStatus)
+       res.send({result1,result2})
+       return
+      }
+      if(data.status === 'Rejected'){
+        // 
+        const result3 = await teachersCollection.updateOne(query, updatedStatus)
+        res.send(result3)
+        return
+      }
+      
+    })
 
 
     // Send a ping to confirm a successful connection
