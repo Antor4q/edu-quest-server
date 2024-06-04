@@ -29,6 +29,7 @@ async function run() {
 
     const usersCollection = client.db('skillDB').collection('users')
     const teachersCollection = client.db('skillDB').collection('teachers')
+    const classesCollection = client.db('skillDB').collection('classes')
 
     // jwt
     app.post("/jwt", (req,res) => {
@@ -42,8 +43,6 @@ async function run() {
       const result = await usersCollection.find().toArray()
       res.send(result)
     })
-
-   
 
     app.get("/users/:email",async(req,res)=>{
       const email = req.params;
@@ -93,6 +92,13 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/teachers/:email", async(req,res) => {
+      const email = req.params.email
+      const filter = { email : email}
+      const result = await teachersCollection.findOne(filter)
+      res.send(result)
+    })
+
     app.post("/teachers", async(req,res) =>{
       const user = req.body;
       const result = await teachersCollection.insertOne(user)
@@ -131,6 +137,13 @@ async function run() {
         return
       }
       
+    })
+
+    // classes api
+    app.post("/classes",async(req,res) => {
+      const data = req.body;
+      const result = await classesCollection.insertOne(data)
+      res.send(result)
     })
 
 
