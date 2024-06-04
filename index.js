@@ -152,10 +152,29 @@ async function run() {
       res.send(result)
     })
 
-    app.delete("/teachers/:id",async(req,res) => {
+    app.put("/classes/:id", async(req,res) => {
+      const id = req.params.id
+      const filter = { _id : new ObjectId(id)}
+      const data = req.body
+      const updatedClass = {
+        $set : {
+          title : data.title,
+          name : data.name,
+          email : data.email,
+          price : data.price,
+          description : data.description,
+          image : data.image,
+          status : data.status
+        }
+      }
+      const result = await classesCollection.updateOne(filter, updatedClass)
+      res.send(result)
+    })
+
+    app.delete("/classes/:id",async(req,res) => {
       const id = req.params.id
       const query = { _id : new ObjectId(id)}
-      console.log('inside server teacher:', query)
+     
       const result = await classesCollection.deleteOne(query)
       res.send(result)
     })
