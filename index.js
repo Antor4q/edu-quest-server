@@ -152,6 +152,13 @@ async function run() {
       res.send(result)
     })
 
+    app.delete("/teachers/:id",async(req,res) => {
+      const id = req.params.id
+      const query = { _id : new ObjectId(id)}
+      console.log('inside server teacher:', query)
+      const result = await classesCollection.deleteOne(query)
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
