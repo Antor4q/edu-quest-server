@@ -234,17 +234,29 @@ async function run() {
 
     app.get("/isPayment",async(req,res)=>{
        const result = await paymentsCollection.find().toArray()
+     
        res.send(result)
     })
+
+    app.get("/myEnrolled/:email", async(req,res) => {
+      const email = req.params.email
+      const result = await paymentsCollection.find({studentEmail : email}).toArray()
+      res.send(result)
+    })
+
+   
 
     app.patch("/payment/:title",async(req,res) => {
       const title = req.params.title
       const data = req.body.totalEnrolled
+      const dat = req.body.studentEmail
       const query = { title : title}
       const totalEnrolled = parseInt(data + 1)
       const updatedEnrolled = {
         $set : {
-          totalEnrolled : totalEnrolled
+          totalEnrolled : totalEnrolled,
+          studentEmail : dat,
+          transactionId : req.body.transactionId 
         }
       }
       const result = await paymentsCollection.updateOne(query,updatedEnrolled)
