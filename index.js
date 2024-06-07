@@ -33,6 +33,7 @@ async function run() {
     const teachersCollection = client.db('skillDB').collection('teachers')
     const classesCollection = client.db('skillDB').collection('classes')
     const paymentsCollection = client.db('skillDB').collection('payment')
+    const assignmentsCollection = client.db('skillDB').collection('assignments')
 
     // jwt
     app.post("/jwt", (req,res) => {
@@ -227,7 +228,7 @@ async function run() {
 
     app.post("/payment",async(req,res)=>{
       const successPayment = req.body
-      console.log(successPayment)
+      
       const result = await paymentsCollection.insertOne(successPayment)
       res.send(result)
     })
@@ -275,6 +276,12 @@ async function run() {
       res.send({
         clientSecret : paymentIntent.client_secret
       })
+    })
+    // assignments api
+    app.post("/assignments", async(req,res) => {
+      const assignment = req.body
+      const result = await assignmentsCollection.insertOne(assignment)
+      res.send(result)
     })
 
     // Send a ping to confirm a successful connection
