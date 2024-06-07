@@ -35,6 +35,7 @@ async function run() {
     const paymentsCollection = client.db('skillDB').collection('payment')
     const assignmentsCollection = client.db('skillDB').collection('assignments')
     const submitAssignmentsCollection = client.db('skillDB').collection('submitAssignments')
+    const feedbackCollection = client.db('skillDB').collection('feedback')
 
     // jwt
     app.post("/jwt", (req,res) => {
@@ -253,6 +254,14 @@ async function run() {
       res.send(result)
     })
 
+    app.get("/enrolledTitle/:id", async(req,res) => {
+      const id = req.params.id
+      const query = { _id : new ObjectId(id)}
+      const result = await paymentsCollection.findOne(query)
+      
+      res.send(result)
+    })
+
    
 
     app.patch("/payment/:title",async(req,res) => {
@@ -306,6 +315,13 @@ async function run() {
       const assignment = req.body;
       const result = await submitAssignmentsCollection.insertOne(assignment)
       res.send(result)
+    })
+    // feedback api
+
+    app.post("/feedback", async(req,res) => {
+        const feedback = req.body
+        const result = await feedbackCollection.insertOne(feedback)
+        res.send(result)
     })
 
     
