@@ -34,6 +34,7 @@ async function run() {
     const classesCollection = client.db('skillDB').collection('classes')
     const paymentsCollection = client.db('skillDB').collection('payment')
     const assignmentsCollection = client.db('skillDB').collection('assignments')
+    const submitAssignmentsCollection = client.db('skillDB').collection('submitAssignments')
 
     // jwt
     app.post("/jwt", (req,res) => {
@@ -165,6 +166,13 @@ async function run() {
        const result = await classesCollection.findOne(query)
        res.send(result)
     })
+    app.get("/myClasses/:id", async(req,res) => {
+       const id = req.params.id
+      
+       const query = { _id : new ObjectId(id)}
+       const result = await classesCollection.findOne(query)
+       res.send(result)
+    })
    
     app.get("/class/:email", async(req,res) => {
       const email = req.params.email
@@ -278,12 +286,29 @@ async function run() {
       })
     })
     // assignments api
+    app.get("/assignments/:id",async(req,res) => {
+      const id = req.params.id
+      const filter = { _id  :  new ObjectId(id)}
+      const data = await paymentsCollection.findOne(filter)
+    
+      const query = { classTitle : data.title}
+      const result = await assignmentsCollection.find(query).toArray()
+      res.send(result)
+    })
     app.post("/assignments", async(req,res) => {
       const assignment = req.body
       const result = await assignmentsCollection.insertOne(assignment)
       res.send(result)
     })
 
+    // submitted assignments api
+    app.post("/submitAssignment", async(req,res) => {
+      const assignment = req.body;
+      const result = await submitAssignmentsCollection.insertOne(assignment)
+      res.send(result)
+    })
+
+    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
