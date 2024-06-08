@@ -318,6 +318,22 @@ async function run() {
     })
     // feedback api
 
+    app.get("/feedback",async(req,res) => {
+      const result = await feedbackCollection.find().toArray()
+      res.send(result)
+    })
+
+    app.get("/feedbackRev/:classTitle",async(req,res) => {
+      const title ='Advanced JavaScript'
+      
+      const query ={ classTitle : req.params.classTitle}
+      console.log(query)
+      const result = await feedbackCollection.find(query).toArray()
+      // const data = result?.find(item => item.classTitle === query)
+     console.log(result)
+      res.send(result)
+    })
+
     app.post("/feedback", async(req,res) => {
         const feedback = req.body
         const result = await feedbackCollection.insertOne(feedback)
