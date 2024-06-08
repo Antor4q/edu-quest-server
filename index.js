@@ -48,6 +48,18 @@ async function run() {
 
     // users api
     app.get("/users",async(req,res) => {
+      const dat = req.query.dat
+      console.log('query data is',dat)
+      const result = await usersCollection.find().toArray()
+    
+      const filter = result.filter(user => user?.email.toLowerCase().includes(dat.toLowerCase()))
+      
+
+      res.send(filter)
+    })
+    app.get("/allUsers",async(req,res) => {
+      const dat = req.query.dat
+      console.log(dat)
       const result = await usersCollection.find().toArray()
       res.send(result)
     })
@@ -148,6 +160,9 @@ async function run() {
     })
 
     // classes api
+    app.get("/search", async(req,res) =>{
+
+    })
     app.get("/classes", async(req,res) => {
       const result = await classesCollection.find().toArray()
       res.send(result)
@@ -155,9 +170,38 @@ async function run() {
 
     app.get("/classes/:status",async(req,res) => {
       const status = req.params.status
+     
       const query = { status : status}
       const result = await classesCollection.find(query).toArray()
+     
+     
       res.send(result)
+    })
+    
+
+    app.get("/popularClasses",async(req,res) => {
+       const enrolledClasses = await paymentsCollection.find().toArray()
+       const sortedData = enrolledClasses.sort((a,b)=> b.totalEnrolled - a.totalEnrolled)
+       res.send(sortedData)
+   
+    })
+
+    app.get("/classInfo/:title", async(req,res)=>{
+      const title = req.params.title
+      const query = { title : title}
+      const filter = { classTitle : title}
+      
+      const enrolledClass = await paymentsCollection.findOne(query)
+      const assignments = await assignmentsCollection.find(filter).toArray()
+      const submitAssignments = await submitAssignmentsCollection.find(filter).toArray()
+
+      const totalSubmit = submitAssignments.sort((a,b) => b.date - a.date)
+     
+      const totalEnrolled = enrolledClass?.totalEnrolled || 0
+      const totalASsignments = assignments?.length || 0
+      const perDaySubmit = totalSubmit?.length || 0
+    
+      res.send({totalEnrolled,totalASsignments,perDaySubmit,submitAssignments})
     })
 
     app.get("/classesDetail/:id", async(req,res) => {
@@ -324,8 +368,7 @@ async function run() {
     })
 
     app.get("/feedbackRev/:classTitle",async(req,res) => {
-      const title ='Advanced JavaScript'
-      
+     
       const query ={ classTitle : req.params.classTitle}
       console.log(query)
       const result = await feedbackCollection.find(query).toArray()
@@ -338,6 +381,20 @@ async function run() {
         const feedback = req.body
         const result = await feedbackCollection.insertOne(feedback)
         res.send(result)
+    })
+
+
+
+    app.get("/impact", async(req,res) => {
+      const query = { status : 'Accepted'}
+      const users = await usersCollection.find().toArray()
+      const enrolled = await paymentsCollection.find().toArray()
+      const classes = await classesCollection.find(query).toArray()
+      const totalUsers = users.length
+      const totalEnrolled = enrolled.reduce((total,item)=> total + parseInt(item?.totalEnrolled),0)
+      const totalClasses = classes.length
+      
+      res.send({totalUsers, totalClasses, totalEnrolled})
     })
 
     
