@@ -40,30 +40,50 @@ async function run() {
     // jwt
     app.post("/jwt", (req,res) => {
       const user = req.body;
+     
       const token = jwt.sign(user,process.env.ACCESS_TOKEN,{expiresIn: '4h'})
+     
       res.send({token})
     })
+
+    const verifyToken = (req,res,next)=>{
+       const accessToken = req.headers.authorization
+       if(!accessToken){
+        res.status(401).send({message: 'unauthorized access'})
+       }
+       console.log(accessToken)
+       const token = accessToken.split(' ')[1]
+       jwt.verify(token,process.env.ACCESS_TOKEN,(err,decoded)=>{
+        if(err){
+          res.status(401).send({message: 'unauthorized access'})
+        }
+        req.userEmail = decoded
+        next()
+       })
+      
+    }
 
    
 
     // users api
     app.get("/users",async(req,res) => {
-      const dat = req.query.dat
-      console.log('query data is',dat)
-      const result = await usersCollection.find().toArray()
-    
-      const filter = result.filter(user => user?.email.toLowerCase().includes(dat.toLowerCase()))
+      const dat = req.query.dat || ""
+      const currentPage = parseInt(req.query.currentPage) || 1
+      const userPerPage = parseInt(req.query.userPerPage) || 10
+      const query = dat ? {email:{$regex : dat, $options : 'i'}} : {}
+     
+     
+      const result = await usersCollection.find(query).skip((currentPage-1) * userPerPage).limit(userPerPage).toArray()
       
-
-      res.send(filter)
-    })
-    app.get("/allUsers",async(req,res) => {
-      const dat = req.query.dat
-      console.log(dat)
-      const result = await usersCollection.find().toArray()
       res.send(result)
     })
 
+    app.get("/pagination", async(req,res) => {
+       const totalUsers = await usersCollection.estimatedDocumentCount()
+       const totalTeachers = await teachersCollection.estimatedDocumentCount()
+       res.send({totalUsers : totalUsers,totalTeachers:totalTeachers})
+    })
+   
     app.get("/users/:email",async(req,res)=>{
       const email = req.params;
     
@@ -108,7 +128,11 @@ async function run() {
 
     // teachers related api
     app.get("/teachers",async(req,res)=>{
-      const result = await teachersCollection.find().toArray()
+      console.log(req.query)
+      const currentPage = parseInt(req.query.currentPage) || 1
+      const teachersPerPage = parseInt(req.query.perPageUser) || 10
+      console.log(currentPage, teachersPerPage)
+      const result = await teachersCollection.find().skip((currentPage-1)*teachersPerPage).limit(teachersPerPage).toArray()
       res.send(result)
     })
 
@@ -160,9 +184,7 @@ async function run() {
     })
 
     // classes api
-    app.get("/search", async(req,res) =>{
-
-    })
+   
     app.get("/classes", async(req,res) => {
       const result = await classesCollection.find().toArray()
       res.send(result)
@@ -170,7 +192,6 @@ async function run() {
 
     app.get("/classes/:status",async(req,res) => {
       const status = req.params.status
-     
       const query = { status : status}
       const result = await classesCollection.find(query).toArray()
      
