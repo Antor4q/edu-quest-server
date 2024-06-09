@@ -79,9 +79,13 @@ async function run() {
     })
 
     app.get("/pagination", async(req,res) => {
+    
        const totalUsers = await usersCollection.estimatedDocumentCount()
        const totalTeachers = await teachersCollection.estimatedDocumentCount()
-       res.send({totalUsers : totalUsers,totalTeachers:totalTeachers})
+       const totalClasses = await classesCollection.estimatedDocumentCount()
+       const totalEnrolledClass = await paymentsCollection.estimatedDocumentCount()
+      
+       res.send({totalUsers : totalUsers,totalTeachers:totalTeachers,totalClasses,totalEnrolledClass})
     })
    
     app.get("/users/:email",async(req,res)=>{
@@ -186,16 +190,19 @@ async function run() {
     // classes api
    
     app.get("/classes", async(req,res) => {
-      const result = await classesCollection.find().toArray()
+      const currentPage = parseInt(req.query.currentPage) || 1
+      const perPageClasses = parseInt(req.query.perPageUser) || 10
+      
+      const result = await classesCollection.find().skip((currentPage-1)*perPageClasses).limit(perPageClasses).toArray()
       res.send(result)
     })
 
     app.get("/classes/:status",async(req,res) => {
       const status = req.params.status
       const query = { status : status}
-      const result = await classesCollection.find(query).toArray()
-     
-     
+      const currentPage = parseInt(req.query.currentPage)
+      const perPageClasses = parseInt(req.query.perPageUser)
+       const result = await classesCollection.find(query).skip((currentPage-1)*perPageClasses).limit(perPageClasses).toArray()
       res.send(result)
     })
     
@@ -241,9 +248,13 @@ async function run() {
     })
    
     app.get("/class/:email", async(req,res) => {
+      console.log(req.query)
       const email = req.params.email
       const filter = { email : email}
-      const result = await classesCollection.find(filter).toArray()
+      const currentPage = parseInt(req.query.currentPage)
+      const perPageClasses = parseInt(req.query.perPageUser)
+      console.log(currentPage, perPageClasses)
+      const result = await classesCollection.find(filter).skip((currentPage-1)*perPageClasses).limit(perPageClasses).toArray()
       res.send(result)
     })
     app.post("/classes",async(req,res) => {
@@ -315,7 +326,10 @@ async function run() {
 
     app.get("/myEnrolled/:email", async(req,res) => {
       const email = req.params.email
-      const result = await paymentsCollection.find({studentEmail : email}).toArray()
+      const currentPage = parseInt(req.query.currentPage)
+      const perPageClasses = parseInt(req.query.perPageUser)
+      console.log(currentPage, perPageClasses)
+      const result = await paymentsCollection.find({studentEmail : email}).skip((currentPage -1) * perPageClasses).limit(perPageClasses).toArray()
       res.send(result)
     })
 
