@@ -211,7 +211,7 @@ async function run() {
     })
 
     
-    app.get("/teachers",verifyToken,verifyAdmin,async(req,res)=>{
+    app.get("/teachers",verifyToken,async(req,res)=>{
      
       const currentPage = parseInt(req.query.currentPage) || 1
       const teachersPerPage = parseInt(req.query.perPageUser) || 10
