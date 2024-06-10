@@ -7,15 +7,36 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 const port = process.env.PORT || 5000
 
-app.use(cors())
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://skillpath-ce375.web.app",
+  "https://skill-path-server.vercel.app",
+  "https://skillpath-ce375.firebaseapp.com",
+];
+
+
+
+app.use(cors({
+  origin: function (origin,callback){
+    if(!origin) return callback(null,true)
+     if( allowedOrigins.indexOf(origin) !== -1){
+      return callback(null,true)
+     }else{
+       callback(new Error('Not allowed by cors'))
+     }
+  },
+  credentials : true
+}))
 app.use(express.json())
+
 
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.i8hseoh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -26,8 +47,8 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+   
+   
 
     const usersCollection = client.db('skillDB').collection('users')
     const teachersCollection = client.db('skillDB').collection('teachers')
@@ -37,7 +58,7 @@ async function run() {
     const submitAssignmentsCollection = client.db('skillDB').collection('submitAssignments')
     const feedbackCollection = client.db('skillDB').collection('feedback')
 
-    // jwt
+    
     app.post("/jwt", (req,res) => {
       const user = req.body;
      
@@ -51,8 +72,9 @@ async function run() {
        if(!accessToken){
         res.status(401).send({message: 'unauthorized access'})
        }
-       console.log(accessToken)
-       const token = accessToken.split(' ')[1]
+      
+       const token = accessToken?.split(' ')[1] || ""
+       console.log(token)
        jwt.verify(token,process.env.ACCESS_TOKEN,(err,decoded)=>{
         if(err){
           res.status(401).send({message: 'unauthorized access'})
@@ -63,10 +85,68 @@ async function run() {
       
     }
 
-   
+    const verifyAdmin = async(req,res,next) =>{
+     try{
+      const email = req?.userEmail?.email
+    
+      const query = { email : email}
+      const user = await usersCollection.findOne(query)
+      const isAdmin = user?.role === 'Admin'
+      if(!isAdmin){
+        res.status(403).send({message:'forbidden access'})
+      }
+      next()
+     }
+     catch (err){
+      console.log(err)
+      return res.status(500).send({ message: 'internal server error' });
+     }
+    }
+    const verifyTeacher = async(req,res,next) =>{
+      try{
+        const email = req?.userEmail.email
+    
+      const query = { email : email}
+      const user = await usersCollection.findOne(query)
+      const isTeacher = user?.role === 'Teacher'
+      if(!isTeacher){
+        res.status(403).send({message:'forbidden access'})
+      }
+      next()
+      }
+      catch (err){
+        console.log(err)
+        return res.status(500).send({ message: 'internal server error' });
+      }
+    }
+    const verifyStudent = async(req,res,next) =>{
+     try{
+      const email = req?.userEmail.email
+    
+      const query = { email : email}
+      const user = await usersCollection.findOne(query)
+      const isStudent = user?.role === 'Student'
+      if(!isStudent){
+        res.status(403).send({message:'forbidden access'})
+      }
+      next()
+     }
+     catch (err){
+      console.log(err)
+      return res.status(500).send({ message: 'internal server error' });
+     }
+    }
 
-    // users api
-    app.get("/users",async(req,res) => {
+   app.get("/popular",async(req,res)=>{
+     const enrolledClasses = await paymentsCollection.find().toArray()
+     const maxEnrolled = enrolledClasses.sort((a,b)=> b.totalEnrolled - a.totalEnrolled)[0]
+    
+     const filterData = enrolledClasses.filter(item => item.totalEnrolled === maxEnrolled.totalEnrolled)
+     res.send(filterData)
+   })
+
+    
+    app.get("/users",verifyToken,verifyAdmin,async(req,res) => {
       const dat = req.query.dat || ""
       const currentPage = parseInt(req.query.currentPage) || 1
       const userPerPage = parseInt(req.query.userPerPage) || 10
@@ -78,7 +158,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get("/pagination", async(req,res) => {
+    app.get("/pagination",verifyToken, async(req,res) => {
     
        const totalUsers = await usersCollection.estimatedDocumentCount()
        const totalTeachers = await teachersCollection.estimatedDocumentCount()
@@ -88,7 +168,7 @@ async function run() {
        res.send({totalUsers : totalUsers,totalTeachers:totalTeachers,totalClasses,totalEnrolledClass})
     })
    
-    app.get("/users/:email",async(req,res)=>{
+    app.get("/users/:email",verifyToken,async(req,res)=>{
       const email = req.params;
     
       const result = await usersCollection.findOne(email)
@@ -109,7 +189,7 @@ async function run() {
         res.send(result)
     })
 
-    app.patch("/users/:id", async(req,res) => {
+    app.patch("/users/:id",verifyToken,verifyAdmin, async(req,res) => {
       const id = req.params.id
       const data = req.body
       
@@ -123,19 +203,19 @@ async function run() {
       res.send(result)
     })
 
-    app.delete("/users/:id", async(req,res) => {
+    app.delete("/users/:id",verifyToken,verifyAdmin, async(req,res) => {
       const id = req.params.id
       const query = {_id : new ObjectId(id)}
       const result = await usersCollection.deleteOne(query)
       res.send(result)
     })
 
-    // teachers related api
-    app.get("/teachers",async(req,res)=>{
-      console.log(req.query)
+    
+    app.get("/teachers",verifyToken,verifyAdmin,async(req,res)=>{
+     
       const currentPage = parseInt(req.query.currentPage) || 1
       const teachersPerPage = parseInt(req.query.perPageUser) || 10
-      console.log(currentPage, teachersPerPage)
+     
       const result = await teachersCollection.find().skip((currentPage-1)*teachersPerPage).limit(teachersPerPage).toArray()
       res.send(result)
     })
@@ -153,7 +233,7 @@ async function run() {
       res.send(result)
     })
 
-    app.patch("/teachers/:id", async(req,res) => {
+    app.patch("/teachers/:id",verifyToken,verifyAdmin, async(req,res) => {
       const id = req.params.id
       const data = req.body
       const query = { _id: new ObjectId(id)}
@@ -187,12 +267,12 @@ async function run() {
       
     })
 
-    // classes api
+    
    
-    app.get("/classes", async(req,res) => {
+    app.get("/classes",verifyToken,verifyAdmin, async(req,res) => {
       const currentPage = parseInt(req.query.currentPage) || 1
       const perPageClasses = parseInt(req.query.perPageUser) || 10
-      
+     
       const result = await classesCollection.find().skip((currentPage-1)*perPageClasses).limit(perPageClasses).toArray()
       res.send(result)
     })
@@ -217,29 +297,32 @@ async function run() {
     app.get("/classInfo/:title", async(req,res)=>{
       const title = req.params.title
       const query = { title : title}
-      const filter = { classTitle : title}
-      
+     
+      const date = new Date()
+      const formatDate = date.toISOString().split('T')[0]
+      const filter = { classTitle : title,date:{$regex:formatDate}}
+      const fil = { classTitle : title}
       const enrolledClass = await paymentsCollection.findOne(query)
-      const assignments = await assignmentsCollection.find(filter).toArray()
+      const assignments = await assignmentsCollection.find(fil).toArray()
       const submitAssignments = await submitAssignmentsCollection.find(filter).toArray()
-
-      const totalSubmit = submitAssignments.sort((a,b) => b.date - a.date)
+      
+        submitAssignments.sort((a,b) => a.date > b.date ? 1:-1)
      
       const totalEnrolled = enrolledClass?.totalEnrolled || 0
       const totalASsignments = assignments?.length || 0
-      const perDaySubmit = totalSubmit?.length || 0
-    
-      res.send({totalEnrolled,totalASsignments,perDaySubmit,submitAssignments})
+      const perDaySubmit = submitAssignments?.length || 0
+     
+      res.send({totalEnrolled,totalASsignments,perDaySubmit})
     })
 
-    app.get("/classesDetail/:id", async(req,res) => {
+    app.get("/classesDetail/:id",verifyToken, async(req,res) => {
        const id = req.params.id
       
        const query = { _id : new ObjectId(id)}
        const result = await classesCollection.findOne(query)
        res.send(result)
     })
-    app.get("/myClasses/:id", async(req,res) => {
+    app.get("/myClasses/:id",verifyToken, async(req,res) => {
        const id = req.params.id
       
        const query = { _id : new ObjectId(id)}
@@ -247,13 +330,13 @@ async function run() {
        res.send(result)
     })
    
-    app.get("/class/:email", async(req,res) => {
-      console.log(req.query)
+    app.get("/class/:email",verifyToken,verifyTeacher, async(req,res) => {
+     
       const email = req.params.email
       const filter = { email : email}
       const currentPage = parseInt(req.query.currentPage)
       const perPageClasses = parseInt(req.query.perPageUser)
-      console.log(currentPage, perPageClasses)
+     
       const result = await classesCollection.find(filter).skip((currentPage-1)*perPageClasses).limit(perPageClasses).toArray()
       res.send(result)
     })
@@ -263,7 +346,7 @@ async function run() {
       res.send(result)
     })
 
-    app.put("/classes/:id", async(req,res) => {
+    app.put("/classes/:id",verifyToken,verifyTeacher, async(req,res) => {
       const id = req.params.id
       const filter = { _id : new ObjectId(id)}
       const data = req.body
@@ -282,7 +365,7 @@ async function run() {
       res.send(result)
     })
 
-    app.patch("/classes/:id",async(req,res) => {
+    app.patch("/classes/:id",verifyToken,verifyAdmin,async(req,res) => {
       const id = req.params.id
       const data = req.body
       const query = { _id : new ObjectId(id)}
@@ -303,7 +386,7 @@ async function run() {
       }
     })
 
-    app.delete("/classes/:id",async(req,res) => {
+    app.delete("/classes/:id",verifyToken,verifyTeacher,async(req,res) => {
       const id = req.params.id
       const query = { _id : new ObjectId(id)}
      
@@ -324,7 +407,7 @@ async function run() {
        res.send(result)
     })
 
-    app.get("/myEnrolled/:email", async(req,res) => {
+    app.get("/myEnrolled/:email",verifyToken,verifyStudent, async(req,res) => {
       const email = req.params.email
       const currentPage = parseInt(req.query.currentPage)
       const perPageClasses = parseInt(req.query.perPageUser)
@@ -373,8 +456,8 @@ async function run() {
         clientSecret : paymentIntent.client_secret
       })
     })
-    // assignments api
-    app.get("/assignments/:id",async(req,res) => {
+    
+    app.get("/assignments/:id",verifyToken,verifyStudent,async(req,res) => {
       const id = req.params.id
       const filter = { _id  :  new ObjectId(id)}
       const data = await paymentsCollection.findOne(filter)
@@ -389,13 +472,13 @@ async function run() {
       res.send(result)
     })
 
-    // submitted assignments api
+   
     app.post("/submitAssignment", async(req,res) => {
       const assignment = req.body;
       const result = await submitAssignmentsCollection.insertOne(assignment)
       res.send(result)
     })
-    // feedback api
+    
 
     app.get("/feedback",async(req,res) => {
       const result = await feedbackCollection.find().toArray()
@@ -405,10 +488,9 @@ async function run() {
     app.get("/feedbackRev/:classTitle",async(req,res) => {
      
       const query ={ classTitle : req.params.classTitle}
-      console.log(query)
+      
       const result = await feedbackCollection.find(query).toArray()
-      // const data = result?.find(item => item.classTitle === query)
-     console.log(result)
+    
       res.send(result)
     })
 
@@ -433,9 +515,9 @@ async function run() {
     })
 
     
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
    
