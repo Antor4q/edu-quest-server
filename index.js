@@ -57,6 +57,7 @@ async function run() {
     const assignmentsCollection = client.db('skillDB').collection('assignments')
     const submitAssignmentsCollection = client.db('skillDB').collection('submitAssignments')
     const feedbackCollection = client.db('skillDB').collection('feedback')
+    const blogsCollection = client.db('skillDB').collection('blogs')
 
     
     app.post("/jwt", (req,res) => {
@@ -145,8 +146,8 @@ async function run() {
      res.send(filterData)
    })
 
-    
-    app.get("/users",verifyToken,verifyAdmin,async(req,res) => {
+    // here
+    app.get("/users",async(req,res) => {
       const dat = req.query.dat || ""
       const currentPage = parseInt(req.query.currentPage) || 1
       const userPerPage = parseInt(req.query.userPerPage) || 10
@@ -158,7 +159,12 @@ async function run() {
       res.send(result)
     })
 
-    app.get("/pagination",verifyToken, async(req,res) => {
+    app.get("/meetTeachers", async(req,res)=> {
+      const result = await usersCollection.find().toArray()
+      res.send(result)
+    })
+//  here
+    app.get("/pagination", async(req,res) => {
     
        const totalUsers = await usersCollection.estimatedDocumentCount()
        const totalTeachers = await teachersCollection.estimatedDocumentCount()
@@ -167,8 +173,8 @@ async function run() {
       
        res.send({totalUsers : totalUsers,totalTeachers:totalTeachers,totalClasses,totalEnrolledClass})
     })
-   
-    app.get("/users/:email",verifyToken,async(req,res)=>{
+  //  here
+    app.get("/users/:email",async(req,res)=>{
       const email = req.params;
     
       const result = await usersCollection.findOne(email)
@@ -188,8 +194,8 @@ async function run() {
         const result = await usersCollection.insertOne(user)
         res.send(result)
     })
-
-    app.patch("/users/:id",verifyToken,verifyAdmin, async(req,res) => {
+//  here
+    app.patch("/users/:id", async(req,res) => {
       const id = req.params.id
       const data = req.body
       
@@ -202,16 +208,16 @@ async function run() {
       const result = await usersCollection.updateOne(query,updatedRole)
       res.send(result)
     })
-
-    app.delete("/users/:id",verifyToken,verifyAdmin, async(req,res) => {
+//  here
+    app.delete("/users/:id", async(req,res) => {
       const id = req.params.id
       const query = {_id : new ObjectId(id)}
       const result = await usersCollection.deleteOne(query)
       res.send(result)
     })
 
-    
-    app.get("/teachers",verifyToken,async(req,res)=>{
+    // here
+    app.get("/teachers",async(req,res)=>{
      
       const currentPage = parseInt(req.query.currentPage) || 1
       const teachersPerPage = parseInt(req.query.perPageUser) || 10
@@ -232,8 +238,9 @@ async function run() {
       const result = await teachersCollection.insertOne(user)
       res.send(result)
     })
-
-    app.patch("/teachers/:id",verifyToken,verifyAdmin, async(req,res) => {
+ 
+    // here
+    app.patch("/teachers/:id", async(req,res) => {
       const id = req.params.id
       const data = req.body
       const query = { _id: new ObjectId(id)}
@@ -411,7 +418,7 @@ async function run() {
       const email = req.params.email
       const currentPage = parseInt(req.query.currentPage)
       const perPageClasses = parseInt(req.query.perPageUser)
-      console.log(currentPage, perPageClasses)
+     
       const result = await paymentsCollection.find({studentEmail : email}).skip((currentPage -1) * perPageClasses).limit(perPageClasses).toArray()
       res.send(result)
     })
@@ -424,8 +431,8 @@ async function run() {
       res.send(result)
     })
 
-   
-
+    
+  
     app.patch("/payment/:title",async(req,res) => {
       const title = req.params.title
       const data = req.body.totalEnrolled
@@ -500,6 +507,11 @@ async function run() {
         res.send(result)
     })
 
+    app.get("/blogs", async(req,res)=> {
+      const result = await blogsCollection.find().toArray()
+      res.send(result)
+    })
+
 
 
     app.get("/impact", async(req,res) => {
@@ -516,8 +528,7 @@ async function run() {
 
     
     
-    // await client.db("admin").command({ ping: 1 });
-    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    
   } finally {
     // Ensures that the client will close when you finish/error
    
