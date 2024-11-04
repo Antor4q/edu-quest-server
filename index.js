@@ -413,6 +413,21 @@ async function run() {
      
        res.send(result)
     })
+    app.get("/adminStatic",async(req,res)=>{
+       const result = await paymentsCollection.find().toArray()
+      
+       const totalPrice = result?.reduce((acc, item) => {
+        return acc + (item?.totalEnrolled * item?.price);
+      }, 0);
+      const query = { role : "Teacher"}
+      const query2 = { role : "Student"}
+      const totalTeachers = (await usersCollection.find(query).toArray()).length
+      const totalStudents = (await usersCollection.find(query2).toArray()).length
+      const totalClasses = (await classesCollection.find().toArray()).length
+      
+      
+       res.send({totalPrice,totalTeachers,totalStudents,totalClasses})
+    })
 
     app.get("/myEnrolled/:email",verifyToken,verifyStudent, async(req,res) => {
       const email = req.params.email
